@@ -15,11 +15,16 @@ let package = Package(
         .library(name: "FlutterGeneratedPluginSwiftPackage", type: .static, targets: ["FlutterGeneratedPluginSwiftPackage"])
     ],
     dependencies: [
-        
+        .package(name: "webview_flutter_wkwebview", path: "../.packages/webview_flutter_wkwebview-3.26.2"),
+        .package(name: "FlutterFramework", path: "../.packages/FlutterFramework")
     ],
     targets: [
         .target(
-            name: "FlutterGeneratedPluginSwiftPackage"
+            name: "FlutterGeneratedPluginSwiftPackage",
+            dependencies: [
+                .product(name: "webview-flutter-wkwebview", package: "webview_flutter_wkwebview"),
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ]
         )
     ]
 )
