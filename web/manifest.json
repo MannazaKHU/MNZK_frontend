@@ -1,0 +1,19 @@
+{
+    "name": "만나자쿠 · 맞춤형 약속 도우미",
+    "short_name": "만나자쿠",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#fbfdf7",
+    "theme_color": "#62d674",
+    "description": "모두의 날짜와 시간, 출발지와 취향을 모으는 약속 도우미",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
