@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
 import 'models.dart';
+import 'session_storage.dart';
 
 enum MeetingStep {
   create,
@@ -45,6 +46,7 @@ class MeetingController extends ChangeNotifier {
         (today ?? DateTime.now()).month,
       ) {
     _readInvitation(initialUri ?? Uri.base);
+    if (_pendingMeetingId != null) unawaited(_restoreSession());
   }
 
   final DateTime _today;
@@ -75,6 +77,7 @@ class MeetingController extends ChangeNotifier {
   Map<String, dynamic>? _remoteMeeting;
   Timer? _pollTimer;
   bool _polling = false;
+  bool restoringSession = false;
   final List<Timer> _mockTimers = [];
 
   bool get backendEnabled => api.enabled;
@@ -129,6 +132,105 @@ class MeetingController extends ChangeNotifier {
     isJoiner = true;
     group = const MeetingGroup(name: '초대받은 그룹', size: 0);
     step = MeetingStep.name;
+  }
+
+  Future<void> _restoreSession() async {
+    final id = _pendingMeetingId;
+    if (id == null) return;
+    final saved = readMeetingSession(id);
+    if (saved == null || saved['access_token']?.toString().isEmpty != false) {
+      return;
+    }
+    restoringSession = true;
+    notifyListeners();
+    try {
+      meetingId = id;
+      memberId = saved['member_id']?.toString();
+      accessToken = saved['access_token']?.toString();
+      inviteCode = saved['invite_code']?.toString() ?? _pendingInviteCode;
+      isHost = saved['is_host'] == true;
+      isJoiner = !isHost;
+      _restoreDraft(saved['draft']);
+      final meeting = await api.getMeeting(
+        meetingId: meetingId!,
+        accessToken: accessToken!,
+      );
+      _applyMeeting(meeting);
+      final me = (meeting['members'] as List? ?? const [])
+          .whereType<Map>()
+          .where((member) => member['id']?.toString() == memberId);
+      final submitted = me.isNotEmpty && me.first['submitted_at'] != null;
+      if (serverStatus == 'recommended' || serverStatus == 'finalized') {
+        go(MeetingStep.result);
+      } else if (submitted || saved['step'] == MeetingStep.wait.name) {
+        go(MeetingStep.wait);
+        _startPolling();
+      } else {
+        final savedStep = MeetingStep.values.where(
+          (value) => value.name == saved['step']?.toString(),
+        );
+        final target = savedStep.isEmpty ? MeetingStep.date : savedStep.first;
+        go(
+          target.index >= MeetingStep.date.index &&
+                  target.index <= MeetingStep.review.index
+              ? target
+              : MeetingStep.date,
+        );
+      }
+    } on ApiException {
+      deleteMeetingSession(id);
+      meetingId = null;
+      memberId = null;
+      accessToken = null;
+      isHost = false;
+      isJoiner = true;
+      step = MeetingStep.name;
+    } finally {
+      restoringSession = false;
+      notifyListeners();
+    }
+  }
+
+  void _restoreDraft(Object? value) {
+    if (value is! Map) return;
+    final restored = ScheduleDraft();
+    restored.name = value['name']?.toString() ?? '';
+    restored.place = value['place']?.toString() ?? '';
+    restored.good = value['good']?.toString() ?? '';
+    restored.bad = value['bad']?.toString() ?? '';
+    final dates = value['dates'];
+    if (dates is List) {
+      for (final raw in dates) {
+        final date = DateTime.tryParse(raw.toString());
+        if (date != null) restored.dates.add(dateOnly(date));
+      }
+    }
+    final slots = value['slots'];
+    if (slots is Map) {
+      for (final entry in slots.entries) {
+        final values = entry.value;
+        if (values is List) {
+          restored.slots[entry.key.toString()] = values
+              .whereType<num>()
+              .map((value) => value.toInt())
+              .toSet();
+        }
+      }
+    }
+    draft = restored;
+  }
+
+  void saveProgress() {
+    final id = meetingId;
+    if (id == null || memberId == null || accessToken == null) return;
+    writeMeetingSession(id, {
+      'member_id': memberId,
+      'access_token': accessToken,
+      'invite_code': inviteCode ?? _pendingInviteCode,
+      'is_host': isHost,
+      'step': step?.name,
+      'draft': draft.toJson(),
+    });
   }
 
   void home() {
@@ -219,6 +321,7 @@ class MeetingController extends ChangeNotifier {
   void go(MeetingStep target) {
     step = target;
     error = null;
+    saveProgress();
     notifyListeners();
   }
 
@@ -271,6 +374,7 @@ class MeetingController extends ChangeNotifier {
     }
     draft.toggleDate(normalized);
     error = null;
+    saveProgress();
     notifyListeners();
   }
 
@@ -278,11 +382,13 @@ class MeetingController extends ChangeNotifier {
     draft.slots
       ..clear()
       ..addAll(slots);
+    saveProgress();
     notifyListeners();
   }
 
   void clearSlots() {
     draft.slots.clear();
+    saveProgress();
     notifyListeners();
   }
 
@@ -351,6 +457,7 @@ class MeetingController extends ChangeNotifier {
     isHost = host;
     if (host) inviteCode = meeting['invite_code']?.toString();
     _applyMeeting(meeting);
+    saveProgress();
   }
 
   void _applyMeeting(Map<String, dynamic> meeting) {

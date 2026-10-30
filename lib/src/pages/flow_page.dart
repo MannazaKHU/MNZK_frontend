@@ -114,6 +114,19 @@ class FlowPage extends StatelessWidget {
   List<Widget> _content(BuildContext context) {
     final model = controller;
     final c = JakuColors.of(context);
+    if (model.restoringSession) {
+      return [
+        const SizedBox(height: 48),
+        const Center(child: CircularProgressIndicator()),
+        const SizedBox(height: 20),
+        Text(
+          '진행하던 모임을 불러오고 있어요…',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, color: c.body),
+        ),
+        const SizedBox(height: 48),
+      ];
+    }
     switch (model.step!) {
       case MeetingStep.create:
         return [
@@ -333,7 +346,10 @@ class FlowPage extends StatelessWidget {
               hintText: 'ex) 지윤',
               semanticCounterText: '이름',
             ),
-            onChanged: (value) => model.draft.name = value,
+            onChanged: (value) {
+              model.draft.name = value;
+              model.saveProgress();
+            },
             onFieldSubmitted: (_) => model.next(),
           ),
           const SizedBox(height: 28),
@@ -552,6 +568,7 @@ class FlowPage extends StatelessWidget {
                 case 2:
                   model.draft.bad = value;
               }
+              model.saveProgress();
             },
             onFieldSubmitted: (_) => model.next(),
           ),

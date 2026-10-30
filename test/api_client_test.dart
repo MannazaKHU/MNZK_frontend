@@ -175,4 +175,79 @@ void main() {
       '평균 이동시간은 18.5분이에요.',
     ]);
   });
+
+  test('같은 브라우저에서 초대 링크를 다시 열면 진행 단계를 복원한다', () async {
+    Map<String, dynamic> meeting() => {
+      'id': 'meeting-reentry',
+      'title': '재입장 테스트',
+      'expected_member_count': 4,
+      'date_selection_mode': 'free',
+      'candidate_dates': <String>[],
+      'time_range': {'start': '06:00', 'end': '24:00'},
+      'slot_minutes': 30,
+      'status': 'waiting',
+      'revision': 1,
+      'invite_code': 'invite-reentry',
+      'progress': {'submitted_member_count': 0},
+      'members': [
+        {
+          'id': 'host-reentry',
+          'name': '승주',
+          'is_host': true,
+          'submitted_at': null,
+        },
+      ],
+      'recommendations': <Object>[],
+    };
+    final client = MockClient((request) async {
+      if (request.method == 'POST') {
+        return http.Response(
+          jsonEncode({
+            'meeting': meeting(),
+            'member_id': 'host-reentry',
+            'access_token': 'token-reentry',
+          }),
+          201,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response(
+        jsonEncode(meeting()),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final first = MeetingController(
+      today: DateTime(2026, 10, 30),
+      api: MeetFlowApi(baseUrl: 'https://api.example.com', client: client),
+      initialUri: Uri.parse('https://front.example.com'),
+    );
+    addTearDown(first.dispose);
+    first.startCreate();
+    first.groupName = '재입장 테스트';
+    first.hostName = '승주';
+    await first.createGroup();
+    await first.next();
+    first.toggleDate(DateTime(2026, 11, 1));
+    await first.next();
+    first.setSlots({
+      '2026-11-01': {24, 25},
+    });
+
+    final reopened = MeetingController(
+      today: DateTime(2026, 10, 30),
+      api: MeetFlowApi(baseUrl: 'https://api.example.com', client: client),
+      initialUri: Uri.parse(
+        'https://front.example.com?meeting=meeting-reentry&invite=invite-reentry',
+      ),
+    );
+    addTearDown(reopened.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(reopened.step, MeetingStep.time);
+    expect(reopened.memberId, 'host-reentry');
+    expect(reopened.accessToken, 'token-reentry');
+    expect(reopened.draft.dates, contains(DateTime(2026, 11, 1)));
+    expect(reopened.draft.slots['2026-11-01'], {24, 25});
+  });
 }
