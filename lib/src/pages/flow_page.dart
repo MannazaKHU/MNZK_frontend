@@ -557,7 +557,10 @@ class FlowPage extends StatelessWidget {
               model.draft.good,
               model.draft.bad,
             ][index],
-            maxLength: 60,
+            maxLength: index == 0 ? 200 : 500,
+            minLines: index == 0 ? 1 : 3,
+            maxLines: index == 0 ? 3 : 7,
+            keyboardType: TextInputType.multiline,
             decoration: InputDecoration(hintText: placeholders[index]),
             onChanged: (value) {
               switch (index) {

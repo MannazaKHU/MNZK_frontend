@@ -50,12 +50,20 @@ class MeetFlowApi {
     required String meetingId,
     required String accessToken,
     required Map<String, dynamic> body,
-  }) => _request(
-    'PUT',
-    '/api/meetings/$meetingId/members/me/submission',
-    accessToken: accessToken,
-    body: body,
-  );
+  }) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await _request(
+          'PUT',
+          '/api/meetings/$meetingId/members/me/submission',
+          accessToken: accessToken,
+          body: body,
+        );
+      } on ApiException catch (error) {
+        if (error.code != 'AI_ERROR' || attempt >= 1) rethrow;
+      }
+    }
+  }
 
   Future<Map<String, dynamic>> retryRecommendation({
     required String meetingId,

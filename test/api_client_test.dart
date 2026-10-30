@@ -61,6 +61,43 @@ void main() {
     );
   });
 
+  test('AI 응답 형식 오류는 입력을 유지한 채 한 번 자동 재시도한다', () async {
+    var calls = 0;
+    final client = MockClient((request) async {
+      calls++;
+      if (calls == 1) {
+        return http.Response(
+          jsonEncode({
+            'detail': {'code': 'AI_ERROR', 'message': 'AI 응답 형식이 올바르지 않아요.'},
+          }),
+          502,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      return http.Response(
+        jsonEncode({'id': 'meeting-1', 'status': 'waiting'}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final api = MeetFlowApi(baseUrl: 'https://api.example.com', client: client);
+    const body = {
+      'availability': <String, List<String>>{},
+      'start_location_text': '영통역',
+      'desired_text': '긴 선호 조건',
+      'avoided_text': '긴 비선호 조건',
+    };
+
+    final response = await api.submit(
+      meetingId: 'meeting-1',
+      accessToken: 'token-1',
+      body: body,
+    );
+
+    expect(calls, 2);
+    expect(response['status'], 'waiting');
+  });
+
   test('그룹 생성은 자유 날짜 계약의 필수 세 필드만 전송한다', () async {
     late Map<String, dynamic> sent;
     final client = MockClient((request) async {
