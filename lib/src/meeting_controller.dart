@@ -62,8 +62,11 @@ class MeetingController extends ChangeNotifier {
   bool showChoices = false;
   bool showCodeInput = false;
   bool isJoiner = false;
+  bool isHost = false;
   bool isBusy = false;
   String? serverStatus;
+  int revision = 1;
+  String? confirmedPlaceId;
   String? meetingId;
   String? memberId;
   String? accessToken;
@@ -82,10 +85,15 @@ class MeetingController extends ChangeNotifier {
         in (_remoteMeeting?['candidate_dates'] as List? ?? const []))
       value.toString(),
   };
-  bool canSelectDate(DateTime date) =>
-      !backendEnabled ||
-      allowedDateKeys.isEmpty ||
-      allowedDateKeys.contains(dateKey(date));
+  String get dateSelectionMode =>
+      _remoteMeeting?['date_selection_mode']?.toString() ?? 'fixed';
+  bool canSelectDate(DateTime date) {
+    final value = dateOnly(date);
+    if (backendEnabled && value.isBefore(_today)) return false;
+    if (!backendEnabled || dateSelectionMode == 'free') return true;
+    return allowedDateKeys.contains(dateKey(value));
+  }
+
   List<MeetingStep> get flow => MeetingStep.values.where((s) {
     if (isJoiner) return s.index >= MeetingStep.name.index;
     return !(backendEnabled && s == MeetingStep.name);
@@ -158,6 +166,7 @@ class MeetingController extends ChangeNotifier {
     inviteCode = null;
     _remoteMeeting = null;
     isJoiner = false;
+    isHost = false;
     groupName = '';
     hostName = '';
     go(MeetingStep.create);
@@ -191,22 +200,10 @@ class MeetingController extends ChangeNotifier {
       return;
     }
     await _run(() async {
-      final dates = List.generate(
-        14,
-        (i) => dateKey(_today.add(Duration(days: i))),
-      );
       final response = await api.createMeeting({
         'title': groupName.trim(),
         'host_name': hostName.trim(),
         'expected_member_count': groupSize,
-        'candidate_dates': dates,
-        'time_range': {'start': '06:00', 'end': '23:59'},
-        'slot_minutes': 30,
-        'recommendation_options': {
-          'count': 3,
-          'radius_m': 1000,
-          'extra_text': '',
-        },
       });
       _applySession(response, host: true);
       draft.name = hostName.trim();
@@ -306,6 +303,11 @@ class MeetingController extends ChangeNotifier {
     }
     if (step == MeetingStep.date && draft.dates.isEmpty) return;
     if (step == MeetingStep.time && !draft.hasTime) return;
+    if (step == MeetingStep.place && draft.place.trim().isEmpty) {
+      error = '출발지를 적어주세요.';
+      notifyListeners();
+      return;
+    }
     if (position < flow.length - 1) go(flow[position + 1]);
   }
 
@@ -320,7 +322,13 @@ class MeetingController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    draft.toggleDate(date);
+    final normalized = dateOnly(date);
+    if (!draft.dates.contains(normalized) && draft.dates.length >= 14) {
+      error = '날짜는 최대 14개까지 선택할 수 있어요.';
+      notifyListeners();
+      return;
+    }
+    draft.toggleDate(normalized);
     error = null;
     notifyListeners();
   }
@@ -399,6 +407,7 @@ class MeetingController extends ChangeNotifier {
     meetingId = meeting['id'].toString();
     memberId = response['member_id'].toString();
     accessToken = response['access_token'].toString();
+    isHost = host;
     if (host) inviteCode = meeting['invite_code']?.toString();
     _applyMeeting(meeting);
   }
@@ -415,6 +424,11 @@ class MeetingController extends ChangeNotifier {
   void _applyMeeting(Map<String, dynamic> meeting) {
     _remoteMeeting = meeting;
     serverStatus = meeting['status']?.toString();
+    revision = (meeting['revision'] as num?)?.toInt() ?? revision;
+    final confirmedPlace = meeting['confirmed_place'];
+    confirmedPlaceId = confirmedPlace is Map
+        ? confirmedPlace['id']?.toString()
+        : null;
     final expected =
         (meeting['expected_member_count'] as num?)?.toInt() ?? groupSize;
     groupSize = expected;
@@ -492,6 +506,37 @@ class MeetingController extends ChangeNotifier {
     return value is Map ? value['message']?.toString() : null;
   }
 
+  Future<void> retryRecommendation() async {
+    if (meetingId == null || accessToken == null) return;
+    await _run(() async {
+      final meeting = await api.retryRecommendation(
+        meetingId: meetingId!,
+        accessToken: accessToken!,
+      );
+      _applyMeeting(meeting);
+      _routeForStatus();
+    });
+  }
+
+  Future<void> confirmPlace(String placeId) async {
+    if (!isHost ||
+        meetingId == null ||
+        accessToken == null ||
+        placeId.isEmpty) {
+      return;
+    }
+    await _run(() async {
+      final meeting = await api.confirmPlace(
+        meetingId: meetingId!,
+        accessToken: accessToken!,
+        placeId: placeId,
+        revision: revision,
+      );
+      _applyMeeting(meeting);
+      go(MeetingStep.result);
+    });
+  }
+
   void _startPolling() {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _poll());
@@ -533,7 +578,9 @@ class MeetingController extends ChangeNotifier {
       await action();
     } on ApiException catch (e) {
       error = e.message;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      debugPrint('MeetFlow request failed: $exception');
+      debugPrintStack(stackTrace: stackTrace);
       error = '요청을 처리하는 중 문제가 생겼어요.';
     } finally {
       isBusy = false;

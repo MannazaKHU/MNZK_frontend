@@ -1041,7 +1041,16 @@ class _WaitPanel extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            if (!gathering)
+            if (controller.backendEnabled &&
+                controller.serverStatus == 'failed')
+              JakuButton(
+                '추천 다시 시도',
+                arrow: true,
+                onPressed: controller.isBusy
+                    ? null
+                    : controller.retryRecommendation,
+              ),
+            if (!gathering || controller.serverStatus == 'schedule_conflict')
               JakuButton(
                 '내 입력 고치기',
                 secondary: true,
@@ -1187,6 +1196,9 @@ class _ResultPanelState extends State<_ResultPanel> {
         _PlaceRecommendations(
           members: model.members,
           recommendations: model.recommendations,
+          canConfirm: model.backendEnabled && model.isHost,
+          confirmedPlaceId: model.confirmedPlaceId,
+          onConfirm: model.confirmPlace,
         ),
         const SizedBox(height: 30),
         _subheading('그룹 전체 시간표', c),
@@ -1324,9 +1336,15 @@ class _PlaceRecommendations extends StatelessWidget {
   const _PlaceRecommendations({
     required this.members,
     this.recommendations = const [],
+    this.canConfirm = false,
+    this.confirmedPlaceId,
+    this.onConfirm,
   });
   final List<Member> members;
   final List<PlaceRecommendation> recommendations;
+  final bool canConfirm;
+  final String? confirmedPlaceId;
+  final ValueChanged<String>? onConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -1350,6 +1368,7 @@ class _PlaceRecommendations extends StatelessWidget {
         .toList();
     final fallback = [
       _PlaceData(
+        id: '',
         name: '초록 테이블 파스타',
         category: '이탈리안 · 중간 지점',
         score: 94,
@@ -1360,6 +1379,7 @@ class _PlaceRecommendations extends StatelessWidget {
         ],
       ),
       _PlaceData(
+        id: '',
         name: '모임하기 좋은 온기 카페',
         category: '카페 · 넓은 좌석',
         score: 89,
@@ -1370,6 +1390,7 @@ class _PlaceRecommendations extends StatelessWidget {
         ],
       ),
       _PlaceData(
+        id: '',
         name: '저녁식사 소담 키친',
         category: '한식 · 단체석',
         score: 86,
@@ -1385,6 +1406,7 @@ class _PlaceRecommendations extends StatelessWidget {
         : recommendations
               .map(
                 (item) => _PlaceData(
+                  id: item.id,
                   name: item.name,
                   category: item.category,
                   score: item.score,
@@ -1402,23 +1424,52 @@ class _PlaceRecommendations extends StatelessWidget {
               for (var i = 0; i < data.length; i++)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 14),
-                  child: _PlaceCard(data: data[i], rank: i + 1),
+                  child: _PlaceCard(
+                    data: data[i],
+                    rank: i + 1,
+                    canConfirm: canConfirm,
+                    confirmed: confirmedPlaceId == data[i].id,
+                    onConfirm: onConfirm,
+                  ),
                 ),
             ],
           );
         }
         return Column(
           children: [
-            _PlaceCard(data: data.first, rank: 1, featured: true),
+            _PlaceCard(
+              data: data.first,
+              rank: 1,
+              featured: true,
+              canConfirm: canConfirm,
+              confirmed: confirmedPlaceId == data.first.id,
+              onConfirm: onConfirm,
+            ),
             const SizedBox(height: 14),
             if (data.length > 1)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: _PlaceCard(data: data[1], rank: 2)),
+                  Expanded(
+                    child: _PlaceCard(
+                      data: data[1],
+                      rank: 2,
+                      canConfirm: canConfirm,
+                      confirmed: confirmedPlaceId == data[1].id,
+                      onConfirm: onConfirm,
+                    ),
+                  ),
                   if (data.length > 2) ...[
                     const SizedBox(width: 14),
-                    Expanded(child: _PlaceCard(data: data[2], rank: 3)),
+                    Expanded(
+                      child: _PlaceCard(
+                        data: data[2],
+                        rank: 3,
+                        canConfirm: canConfirm,
+                        confirmed: confirmedPlaceId == data[2].id,
+                        onConfirm: onConfirm,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -1431,6 +1482,7 @@ class _PlaceRecommendations extends StatelessWidget {
 
 class _PlaceData {
   const _PlaceData({
+    required this.id,
     required this.name,
     required this.category,
     required this.score,
@@ -1438,6 +1490,7 @@ class _PlaceData {
     required this.warnings,
     required this.travel,
   });
+  final String id;
   final String name;
   final String category;
   final int score;
@@ -1451,10 +1504,16 @@ class _PlaceCard extends StatefulWidget {
     required this.data,
     required this.rank,
     this.featured = false,
+    this.canConfirm = false,
+    this.confirmed = false,
+    this.onConfirm,
   });
   final _PlaceData data;
   final int rank;
   final bool featured;
+  final bool canConfirm;
+  final bool confirmed;
+  final ValueChanged<String>? onConfirm;
   @override
   State<_PlaceCard> createState() => _PlaceCardState();
 }
@@ -1615,6 +1674,23 @@ class _PlaceCardState extends State<_PlaceCard> {
                   showToast(context, '실제 지도 API를 연결하면 위치를 열 수 있어요.'),
             ),
           ),
+          if (widget.canConfirm && widget.data.id.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: JakuButton(
+                widget.confirmed ? '최종 장소로 확정됨' : '이 장소로 확정',
+                accent: !widget.confirmed,
+                secondary: widget.confirmed,
+                icon: widget.confirmed
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.done_rounded,
+                onPressed: widget.confirmed
+                    ? null
+                    : () => widget.onConfirm?.call(widget.data.id),
+              ),
+            ),
+          ],
         ],
       ),
     );

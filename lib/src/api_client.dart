@@ -57,6 +57,27 @@ class MeetFlowApi {
     body: body,
   );
 
+  Future<Map<String, dynamic>> retryRecommendation({
+    required String meetingId,
+    required String accessToken,
+  }) => _request(
+    'POST',
+    '/api/meetings/$meetingId/recommend',
+    accessToken: accessToken,
+  );
+
+  Future<Map<String, dynamic>> confirmPlace({
+    required String meetingId,
+    required String accessToken,
+    required String placeId,
+    required int revision,
+  }) => _request(
+    'POST',
+    '/api/meetings/$meetingId/place/confirm',
+    accessToken: accessToken,
+    body: {'place_id': placeId, 'revision': revision},
+  );
+
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {

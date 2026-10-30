@@ -86,6 +86,7 @@ class MeetingGroup {
 
 class PlaceRecommendation {
   const PlaceRecommendation({
+    required this.id,
     required this.name,
     required this.score,
     required this.reasons,
@@ -95,6 +96,7 @@ class PlaceRecommendation {
     this.url,
   });
 
+  final String id;
   final String name;
   final int score;
   final List<String> reasons;
@@ -116,6 +118,7 @@ class PlaceRecommendation {
     final travelText = strings(json['travel_text']);
     final travel = travelText.where((item) => item.trim().isNotEmpty).toList();
     return PlaceRecommendation(
+      id: place['id']?.toString() ?? json['place_id']?.toString() ?? '',
       name: place['name']?.toString() ?? '추천 장소',
       category:
           place['category']?.toString() ??
