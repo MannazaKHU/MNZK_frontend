@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mannajaku/src/api_client.dart';
 import 'package:mannajaku/src/meeting_controller.dart';
+import 'package:mannajaku/src/models.dart';
 
 void main() {
   test('생성 요청을 백엔드 계약에 맞게 전송한다', () async {
@@ -109,5 +110,22 @@ void main() {
     expect(controller.dateSelectionMode, 'free');
     expect(controller.canSelectDate(DateTime(2027, 3, 1)), isTrue);
     expect(controller.canSelectDate(DateTime(2026, 10, 29)), isFalse);
+  });
+
+  test('추천 장소의 지도 URL과 좌표를 파싱한다', () {
+    final recommendation = PlaceRecommendation.fromJson({
+      'place': {
+        'id': 'place-1',
+        'name': '만나자쿠 카페',
+        'url': 'https://map.naver.com/p/search/example',
+        'lat': 37.5665,
+        'lng': 126.978,
+      },
+      'score': 91,
+    });
+
+    expect(recommendation.url, 'https://map.naver.com/p/search/example');
+    expect(recommendation.lat, 37.5665);
+    expect(recommendation.lng, 126.978);
   });
 }

@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import '../meeting_controller.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/place_map.dart';
 import '../widgets/date_calendar.dart';
 import '../widgets/feature_sections.dart';
 import '../widgets/invitation_scene.dart';
@@ -1413,6 +1415,9 @@ class _PlaceRecommendations extends StatelessWidget {
                   reasons: item.reasons,
                   warnings: item.warnings,
                   travel: item.travel,
+                  url: item.url,
+                  lat: item.lat,
+                  lng: item.lng,
                 ),
               )
               .toList();
@@ -1489,6 +1494,9 @@ class _PlaceData {
     required this.reasons,
     required this.warnings,
     required this.travel,
+    this.url,
+    this.lat,
+    this.lng,
   });
   final String id;
   final String name;
@@ -1497,6 +1505,9 @@ class _PlaceData {
   final List<String> reasons;
   final List<String> warnings;
   final List<String> travel;
+  final String? url;
+  final double? lat;
+  final double? lng;
 }
 
 class _PlaceCard extends StatefulWidget {
@@ -1529,7 +1540,14 @@ class _PlaceCardState extends State<_PlaceCard> {
       decoration: BoxDecoration(color: c.panel),
       child: Stack(
         children: [
-          Positioned.fill(child: CustomPaint(painter: MiniMapPainter(c))),
+          Positioned.fill(
+            child: PlaceMap(
+              latitude: widget.data.lat,
+              longitude: widget.data.lng,
+              label: widget.data.name,
+              fallback: CustomPaint(painter: MiniMapPainter(c)),
+            ),
+          ),
           const Center(
             child: Icon(
               Icons.location_on_rounded,
@@ -1670,8 +1688,7 @@ class _PlaceCardState extends State<_PlaceCard> {
               '지도에서 보기',
               secondary: true,
               icon: Icons.location_on_outlined,
-              onPressed: () =>
-                  showToast(context, '실제 지도 API를 연결하면 위치를 열 수 있어요.'),
+              onPressed: () => _openMap(context),
             ),
           ),
           if (widget.canConfirm && widget.data.id.isNotEmpty) ...[
@@ -1739,6 +1756,20 @@ class _PlaceCardState extends State<_PlaceCard> {
         ),
       ),
     );
+  }
+
+  Future<void> _openMap(BuildContext context) async {
+    final supplied = widget.data.url?.trim();
+    final target = supplied != null && supplied.isNotEmpty
+        ? supplied
+        : 'https://map.naver.com/p/search/'
+              '${Uri.encodeComponent(widget.data.name)}';
+    final uri = Uri.tryParse(target);
+    if (uri == null ||
+        !uri.hasScheme ||
+        !await launchUrl(uri, webOnlyWindowName: '_blank')) {
+      if (context.mounted) showToast(context, '지도 링크를 열지 못했어요.');
+    }
   }
 }
 

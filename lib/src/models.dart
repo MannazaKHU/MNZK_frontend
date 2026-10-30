@@ -94,6 +94,8 @@ class PlaceRecommendation {
     required this.travel,
     this.category = '추천 장소',
     this.url,
+    this.lat,
+    this.lng,
   });
 
   final String id;
@@ -104,6 +106,8 @@ class PlaceRecommendation {
   final List<String> travel;
   final String category;
   final String? url;
+  final double? lat;
+  final double? lng;
 
   factory PlaceRecommendation.fromJson(Map<String, dynamic> json) {
     final place = json['place'] is Map
@@ -132,6 +136,8 @@ class PlaceRecommendation {
       warnings: strings(json['warnings']),
       travel: travel,
       url: place['url']?.toString() ?? place['map_url']?.toString(),
+      lat: (place['lat'] as num?)?.toDouble(),
+      lng: (place['lng'] as num?)?.toDouble(),
     );
   }
 }
