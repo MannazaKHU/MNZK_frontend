@@ -1,0 +1,14 @@
+:{$PORT:8080} {
+	root * /srv
+	encode zstd gzip
+
+	# Flutter Web is a single-page app. Unknown application routes should
+	# return index.html while existing assets are served directly.
+	try_files {path} /index.html
+	file_server
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

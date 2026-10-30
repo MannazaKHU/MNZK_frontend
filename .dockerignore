@@ -1,0 +1,11 @@
+.dart_tool
+.git
+.github
+.idea
+.vscode
+build
+coverage
+*.iml
+*.log
+*.swp
+.DS_Store

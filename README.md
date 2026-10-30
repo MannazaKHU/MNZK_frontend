@@ -20,6 +20,17 @@ flutter build web
 
 출력은 `build/web/`입니다. 하위 경로에서 서비스할 때는 `flutter build web --base-href /경로/`를 사용하세요.
 
+## Railway 배포
+
+저장소 루트의 `Dockerfile`을 Railway가 자동 감지합니다. 빌드 단계에서 Flutter Web release 번들을 만들고, 실행 단계에서는 Caddy가 Railway의 `PORT` 환경 변수로 정적 파일을 제공합니다.
+
+1. Railway에서 이 GitHub 저장소를 서비스로 연결합니다.
+2. 기존에 직접 입력한 Build Command와 Start Command가 있다면 비워 둡니다.
+3. 새 배포를 실행합니다.
+4. 배포가 활성화되면 **Settings → Networking → Generate Domain**에서 공개 주소를 만듭니다.
+
+`railway.json`에는 Dockerfile 빌더와 `/` 상태 확인 경로가 설정되어 있습니다. Flutter 렌더러 파일도 컨테이너에 포함되도록 `--no-web-resources-cdn`으로 빌드하므로 실행 시 외부 Flutter CDN에 의존하지 않습니다.
+
 ## 구현된 화면과 동작
 
 - 원본 v1의 초록 테마, 밑줄 제목, 초대 카드, 장식 아이콘, 둥근 카드와 버튼
