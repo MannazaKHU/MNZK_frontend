@@ -10,12 +10,10 @@ class FeatureSections extends StatelessWidget {
     super.key,
     required this.controller,
     required this.sectionKeys,
-    required this.onCode,
   });
 
   final MeetingController controller;
   final Map<HomeSection, GlobalKey> sectionKeys;
-  final VoidCallback onCode;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -24,13 +22,12 @@ class FeatureSections extends StatelessWidget {
         sectionKey: sectionKeys[HomeSection.group]!,
         eyebrow: 'STEP 1 · 그룹 만들기',
         titleBefore: '그룹을 만들고 ',
-        highlight: '코드 하나',
+        highlight: '초대 링크',
         titleAfter: '로 모여요',
-        description:
-            '그룹 이름과 인원 수만 정하면 6자리 참여 코드가 생겨요. 친구들은 첫 화면에서 코드만 입력하면 같은 그룹에 들어와요.',
+        description: '그룹 이름과 인원 수만 정하면 초대 링크가 생겨요. 친구들은 링크를 열어 같은 그룹에 바로 참여해요.',
         points: const [
           '나를 포함해 2명부터 12명까지 정할 수 있어요',
-          '버튼 한 번으로 코드를 복사해 단톡방에 보내요',
+          '버튼 한 번으로 초대 링크를 복사해 단톡방에 보내요',
           '정한 인원이 다 차면 더 들어올 수 없어요',
         ],
         visual: const _GroupMock(),
@@ -82,7 +79,7 @@ class FeatureSections extends StatelessWidget {
         ],
         visual: const _ResultMock(),
       ),
-      _CallToAction(controller: controller, onCode: onCode),
+      _CallToAction(controller: controller),
     ],
   );
 }
@@ -379,10 +376,10 @@ class _GroupMock extends StatelessWidget {
                 ),
               ),
               JakuButton(
-                '코드 복사',
+                '초대 링크 복사',
                 small: true,
                 secondary: true,
-                onPressed: () => showToast(context, '코드를 복사했어요.'),
+                onPressed: () => showToast(context, '초대 링크를 복사했어요.'),
               ),
             ],
           ),
@@ -696,9 +693,8 @@ class _RankBadge extends StatelessWidget {
 }
 
 class _CallToAction extends StatelessWidget {
-  const _CallToAction({required this.controller, required this.onCode});
+  const _CallToAction({required this.controller});
   final MeetingController controller;
-  final VoidCallback onCode;
   @override
   Widget build(BuildContext context) {
     final c = JakuColors.of(context);
@@ -729,7 +725,7 @@ class _CallToAction extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '그룹을 만들고 친구들에게 코드를 보내보세요. 나머지는 만나자쿠가 모아드릴게요.',
+                  '그룹을 만들고 친구들에게 초대 링크를 보내보세요. 나머지는 만나자쿠가 모아드릴게요.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -738,18 +734,10 @@ class _CallToAction extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    JakuButton(
-                      '그룹 생성하기',
-                      arrow: true,
-                      onPressed: controller.startCreate,
-                    ),
-                    JakuButton('그룹코드 입력', secondary: true, onPressed: onCode),
-                  ],
+                JakuButton(
+                  '그룹 생성하기',
+                  arrow: true,
+                  onPressed: controller.startCreate,
                 ),
               ],
             ),

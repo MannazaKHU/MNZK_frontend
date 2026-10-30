@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' show max, min;
 
 import 'package:flutter/foundation.dart';
 
@@ -60,7 +60,6 @@ class MeetingController extends ChangeNotifier {
   String hostName = '';
   String? error;
   bool showChoices = false;
-  bool showCodeInput = false;
   bool isJoiner = false;
   bool isHost = false;
   bool isBusy = false;
@@ -110,7 +109,7 @@ class MeetingController extends ChangeNotifier {
   MeetingResult get result => MeetingResult(members);
   String get invitationLink {
     if (!backendEnabled || meetingId == null || inviteCode == null) {
-      return group?.code ?? '';
+      return '';
     }
     return Uri.base
         .replace(
@@ -128,7 +127,7 @@ class MeetingController extends ChangeNotifier {
     _pendingMeetingId = id;
     _pendingInviteCode = invite;
     isJoiner = true;
-    group = const MeetingGroup(name: '초대받은 그룹', size: 0, code: 'INVITE');
+    group = const MeetingGroup(name: '초대받은 그룹', size: 0);
     step = MeetingStep.name;
   }
 
@@ -136,7 +135,6 @@ class MeetingController extends ChangeNotifier {
     _cancelTimers();
     step = null;
     showChoices = false;
-    showCodeInput = false;
     error = null;
     isBusy = false;
     notifyListeners();
@@ -145,12 +143,6 @@ class MeetingController extends ChangeNotifier {
   void choose() {
     home();
     showChoices = true;
-    notifyListeners();
-  }
-
-  void toggleCodeInput() {
-    showCodeInput = !showCodeInput;
-    error = null;
     notifyListeners();
   }
 
@@ -184,13 +176,7 @@ class MeetingController extends ChangeNotifier {
       return;
     }
     if (!backendEnabled) {
-      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      final random = Random.secure();
-      final code = List.generate(
-        6,
-        (_) => alphabet[random.nextInt(alphabet.length)],
-      ).join();
-      group = MeetingGroup(name: groupName.trim(), size: groupSize, code: code);
+      group = MeetingGroup(name: groupName.trim(), size: groupSize);
       go(MeetingStep.code);
       return;
     }
@@ -209,51 +195,6 @@ class MeetingController extends ChangeNotifier {
       draft.name = hostName.trim();
       go(MeetingStep.code);
     });
-  }
-
-  void joinGroup(String input) {
-    final value = input.trim();
-    if (!backendEnabled) {
-      final code = value.toUpperCase();
-      if (!RegExp(r'^[A-Z0-9]{6}$').hasMatch(code)) {
-        error = '그룹 코드는 영문과 숫자 6자리예요. 다시 확인해 주세요.';
-        notifyListeners();
-        return;
-      }
-      _cancelTimers();
-      final existing = group;
-      group = existing?.code == code
-          ? existing
-          : MeetingGroup(name: '예시 그룹', size: 4, code: code);
-      draft = ScheduleDraft();
-      members = [];
-      isJoiner = true;
-      go(MeetingStep.name);
-      return;
-    }
-    final uri = Uri.tryParse(value);
-    String? id = uri?.queryParameters['meeting'];
-    String? invite = uri?.queryParameters['invite'];
-    if ((id == null || invite == null) && value.contains('|')) {
-      final parts = value.split('|');
-      if (parts.length == 2) {
-        id = parts[0];
-        invite = parts[1];
-      }
-    }
-    if (id == null || id.isEmpty || invite == null || invite.isEmpty) {
-      error = '친구에게 받은 초대 링크를 그대로 붙여 넣어주세요.';
-      notifyListeners();
-      return;
-    }
-    _cancelTimers();
-    _pendingMeetingId = id;
-    _pendingInviteCode = invite;
-    draft = ScheduleDraft();
-    members = [];
-    isJoiner = true;
-    group = const MeetingGroup(name: '초대받은 그룹', size: 0, code: 'INVITE');
-    go(MeetingStep.name);
   }
 
   Future<bool> _joinRemote() async {
@@ -412,15 +353,6 @@ class MeetingController extends ChangeNotifier {
     _applyMeeting(meeting);
   }
 
-  String _displayCode(String? value) {
-    final cleaned = (value ?? '')
-        .replaceAll(RegExp('[^A-Za-z0-9]'), '')
-        .toUpperCase();
-    return cleaned.length >= 6
-        ? cleaned.substring(0, 6)
-        : cleaned.padRight(6, 'X');
-  }
-
   void _applyMeeting(Map<String, dynamic> meeting) {
     _remoteMeeting = meeting;
     serverStatus = meeting['status']?.toString();
@@ -436,7 +368,6 @@ class MeetingController extends ChangeNotifier {
       id: meeting['id']?.toString(),
       name: meeting['title']?.toString() ?? groupName,
       size: expected,
-      code: _displayCode(inviteCode ?? _pendingInviteCode),
     );
     final rawMembers = meeting['members'] as List? ?? const [];
     members = rawMembers.map((raw) {

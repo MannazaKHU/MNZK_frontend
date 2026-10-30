@@ -72,15 +72,9 @@ class ScheduleDraft {
 }
 
 class MeetingGroup {
-  const MeetingGroup({
-    required this.name,
-    required this.size,
-    required this.code,
-    this.id,
-  });
+  const MeetingGroup({required this.name, required this.size, this.id});
   final String name;
   final int size;
-  final String code;
   final String? id;
 }
 

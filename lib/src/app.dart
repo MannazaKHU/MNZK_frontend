@@ -186,13 +186,10 @@ class _Header extends StatelessWidget {
     try {
       await Clipboard.setData(ClipboardData(text: controller.invitationLink));
       if (context.mounted) {
-        showToast(
-          context,
-          controller.backendEnabled ? '초대 링크를 복사했어요.' : '그룹 코드를 복사했어요.',
-        );
+        showToast(context, '초대 링크를 복사했어요.');
       }
     } catch (_) {
-      if (context.mounted) showToast(context, '코드를 길게 눌러 직접 복사해주세요.');
+      if (context.mounted) showToast(context, '초대 링크를 복사하지 못했어요.');
     }
   }
 
@@ -205,7 +202,7 @@ class _Header extends StatelessWidget {
     final mobileHome = isHome && width <= 720;
     final logo = _AnimatedLogo(onTap: () => onNavigate(HomeSection.intro));
     final nav = _SectionNav(active: activeSection, onSelected: onNavigate);
-    final badge = group != null && !isHome
+    final badge = group != null && !isHome && controller.backendEnabled
         ? _GroupBadge(group: group, onCopy: () => _copy(context))
         : null;
     return Container(
@@ -417,7 +414,7 @@ class _GroupBadge extends StatelessWidget {
               const SizedBox(width: 9),
             ],
             Tooltip(
-              message: '초대 정보 복사',
+              message: '초대 링크 복사',
               child: InkWell(
                 onTap: onCopy,
                 borderRadius: BorderRadius.circular(99),
@@ -434,15 +431,24 @@ class _GroupBadge extends StatelessWidget {
                       width: 1.5,
                     ),
                   ),
-                  child: Text(
-                    group.code,
-                    style: const TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: JakuColors.stickerInk,
-                      letterSpacing: 1,
-                    ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.link_rounded,
+                        size: 16,
+                        color: JakuColors.stickerInk,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        '초대 링크',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: JakuColors.stickerInk,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

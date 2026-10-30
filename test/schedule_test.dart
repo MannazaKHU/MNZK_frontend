@@ -3,7 +3,7 @@ import 'package:mannajaku/src/meeting_controller.dart';
 import 'package:mannajaku/src/models.dart';
 
 void main() {
-  test('그룹 이름·참여 코드 검증과 인원 범위를 적용한다', () {
+  test('그룹 이름 검증과 인원 범위를 적용한다', () {
     final c = MeetingController();
     addTearDown(c.dispose);
     c.startCreate();
@@ -16,16 +16,8 @@ void main() {
     expect(c.groupSize, 12);
     c.groupName = '우리 스터디';
     c.createGroup();
-    expect(c.group!.code, matches(RegExp(r'^[A-Z0-9]{6}$')));
     expect(c.group!.name, '우리 스터디');
-    c.home();
-    c.joinGroup('123');
-    expect(c.error, isNotNull);
-    expect(c.step, isNull);
-    c.joinGroup('abc123');
-    expect(c.group!.code, 'ABC123');
-    expect(c.step, MeetingStep.name);
-    expect(c.flow.first, MeetingStep.name);
+    expect(c.step, MeetingStep.code);
   });
 
   test('날짜·시간 없이 넘어가지 않고, 날짜 해제 시 해당 시간도 지운다', () {

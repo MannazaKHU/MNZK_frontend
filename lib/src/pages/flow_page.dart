@@ -122,7 +122,7 @@ class FlowPage extends StatelessWidget {
             title: '함께할 ',
             highlight: '그룹',
             after: '을 만들어요',
-            description: '그룹 이름과 인원 수를 정하면 참여 코드가 생겨요.',
+            description: '그룹 이름과 인원 수를 정하면 초대 링크가 생겨요.',
           ),
           const SizedBox(height: 28),
           _FieldLabel('그룹 이름'),
@@ -264,58 +264,38 @@ class FlowPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = math.min(
-                      50.0,
-                      (constraints.maxWidth - 30) / 6,
-                    );
-                    return Semantics(
-                      label: '그룹 코드 ${model.group!.code}',
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: model.group!.code
-                            .split('')
-                            .map(
-                              (char) => Container(
-                                width: width,
-                                height: width * 1.24,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: c.card,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: c.ink, width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: c.ink,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  char,
-                                  style: TextStyle(
-                                    fontFamily: 'Outfit',
-                                    fontSize: width * .6,
-                                    fontWeight: FontWeight.w800,
-                                    color: c.ink,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: JakuColors.green,
+                      foregroundColor: JakuColors.stickerInk,
+                      child: Icon(Icons.link_rounded),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        model.backendEnabled
+                            ? '초대 링크가 준비됐어요.'
+                            : '체험 모드에서는 초대 링크를 생성하지 않아요.',
+                        style: TextStyle(
+                          color: c.ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 22),
-                JakuButton(
-                  model.backendEnabled ? '초대 링크 복사' : '코드 복사',
-                  secondary: true,
-                  small: true,
-                  icon: Icons.copy_rounded,
-                  onPressed: () => _copyCode(context),
-                ),
+                if (model.backendEnabled) ...[
+                  const SizedBox(height: 18),
+                  JakuButton(
+                    '초대 링크 복사',
+                    secondary: true,
+                    small: true,
+                    icon: Icons.copy_rounded,
+                    onPressed: () => _copyInviteLink(context),
+                  ),
+                ],
               ],
             ),
           ),
@@ -323,11 +303,11 @@ class FlowPage extends StatelessWidget {
           InfoBox(
             model.backendEnabled
                 ? '친구가 초대 링크를 열면 같은 그룹에 참여해요. 링크에는 모임 ID와 일회성 초대 정보가 포함돼요.'
-                : '친구들이 첫 화면의 ‘그룹코드 입력’에 이 코드를 넣으면 같은 그룹에 참여해요.',
+                : '체험 모드에서는 예시 그룹원과 함께 전체 흐름을 확인할 수 있어요.',
           ),
           const SizedBox(height: 28),
           PanelFooter(
-            hint: '오른쪽 위에서도 코드를 복사할 수 있어요',
+            hint: model.backendEnabled ? '오른쪽 위에서도 초대 링크를 복사할 수 있어요' : '',
             button: JakuButton(
               '내 일정 입력하기',
               arrow: true,
@@ -603,24 +583,21 @@ class FlowPage extends StatelessWidget {
         ];
       case MeetingStep.wait:
         return [
-          _WaitPanel(controller: model, onCopy: () => _copyCode(context)),
+          _WaitPanel(controller: model, onCopy: () => _copyInviteLink(context)),
         ];
       case MeetingStep.result:
         return [_ResultPanel(controller: model)];
     }
   }
 
-  Future<void> _copyCode(BuildContext context) async {
+  Future<void> _copyInviteLink(BuildContext context) async {
     try {
       await Clipboard.setData(ClipboardData(text: controller.invitationLink));
       if (context.mounted) {
-        showToast(
-          context,
-          controller.backendEnabled ? '초대 링크를 복사했어요.' : '그룹 코드를 복사했어요.',
-        );
+        showToast(context, '초대 링크를 복사했어요.');
       }
     } catch (_) {
-      if (context.mounted) showToast(context, '코드를 길게 눌러 직접 복사해주세요.');
+      if (context.mounted) showToast(context, '초대 링크를 복사하지 못했어요.');
     }
   }
 }
@@ -1058,11 +1035,8 @@ class _WaitPanel extends StatelessWidget {
                 secondary: true,
                 onPressed: controller.editMine,
               ),
-            JakuButton(
-              controller.backendEnabled ? '초대 링크 복사' : '그룹 코드 복사',
-              secondary: true,
-              onPressed: onCopy,
-            ),
+            if (controller.backendEnabled)
+              JakuButton('초대 링크 복사', secondary: true, onPressed: onCopy),
           ],
         ),
       ],
@@ -1081,11 +1055,11 @@ class _ResultPanelState extends State<_ResultPanel> {
   String inspection = '칸을 누르면 몇 명이 가능한지 보여요. 개인별 일정은 표시하지 않아요.';
 
   Future<void> _copyResult(BuildContext context) async {
-    final code = widget.controller.group!.code;
     final uri = Uri.base.replace(
       queryParameters: {
         ...Uri.base.queryParameters,
-        'group': code,
+        if (widget.controller.meetingId != null)
+          'meeting': widget.controller.meetingId!,
         'view': 'result',
       },
     );

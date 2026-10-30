@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../home_sections.dart';
 import '../meeting_controller.dart';
@@ -23,33 +22,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final codeInput = TextEditingController();
-
-  @override
-  void dispose() {
-    codeInput.dispose();
-    super.dispose();
-  }
-
-  void _openCode() {
-    final model = widget.controller;
-    if (!model.showChoices) model.choose();
-    if (!model.showCodeInput) model.toggleCodeInput();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = widget.sectionKeys[HomeSection.intro]?.currentContext;
-      if (context != null) {
-        Scrollable.ensureVisible(
-          context,
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 550),
-          curve: Curves.easeOutCubic,
-          alignment: 0,
-        );
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) => Column(
     children: [
@@ -66,10 +38,7 @@ class _HomePageState extends State<HomePage> {
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 880;
                   final copy = RiseIn(
-                    child: _HeroCopy(
-                      controller: widget.controller,
-                      codeInput: codeInput,
-                    ),
+                    child: _HeroCopy(controller: widget.controller),
                   );
                   final scene = const RiseIn(
                     delay: Duration(milliseconds: 170),
@@ -98,17 +67,15 @@ class _HomePageState extends State<HomePage> {
       FeatureSections(
         controller: widget.controller,
         sectionKeys: widget.sectionKeys,
-        onCode: _openCode,
       ),
     ],
   );
 }
 
 class _HeroCopy extends StatelessWidget {
-  const _HeroCopy({required this.controller, required this.codeInput});
+  const _HeroCopy({required this.controller});
 
   final MeetingController controller;
-  final TextEditingController codeInput;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +95,7 @@ class _HeroCopy extends StatelessWidget {
         HighlightedText('맞춤형 약속', style: titleStyle),
         const SizedBox(height: 24),
         Text(
-          '안녕하세요! 만나자쿠가 약속을 잡아줄게요. 그룹을 만들고 코드를 나누면, 모두의 날짜와 시간, 출발지와 취향을 모아 약속을 찾아드려요.',
+          '안녕하세요! 만나자쿠가 약속을 잡아줄게요. 그룹을 만들고 초대 링크를 나누면, 모두의 날짜와 시간, 출발지와 취향을 모아 약속을 찾아드려요.',
           style: TextStyle(fontSize: 17, height: 1.9, color: c.body),
         ),
         const SizedBox(height: 26),
@@ -151,106 +118,12 @@ class _HeroCopy extends StatelessWidget {
                   arrow: true,
                   onPressed: controller.choose,
                 )
-              : Wrap(
+              : JakuButton(
                   key: const ValueKey('choice'),
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    JakuButton(
-                      '그룹 생성하기',
-                      arrow: true,
-                      onPressed: controller.startCreate,
-                    ),
-                    JakuButton(
-                      '그룹코드 입력',
-                      secondary: true,
-                      onPressed: controller.toggleCodeInput,
-                    ),
-                  ],
+                  '그룹 생성하기',
+                  arrow: true,
+                  onPressed: controller.startCreate,
                 ),
-        ),
-        AnimatedSize(
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 420),
-          curve: Curves.easeOutBack,
-          child: controller.showCodeInput
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: c.card,
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: c.line, width: 1.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: c.ink.withValues(alpha: .05),
-                              blurRadius: 28,
-                              offset: const Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: codeInput,
-                                autofocus: true,
-                                maxLength: controller.backendEnabled ? null : 6,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                inputFormatters: controller.backendEnabled
-                                    ? const []
-                                    : [
-                                        FilteringTextInputFormatter.allow(
-                                          RegExp('[a-zA-Z0-9]'),
-                                        ),
-                                      ],
-                                style: TextStyle(
-                                  color: c.ink,
-                                  letterSpacing: 2,
-                                  fontSize: 15,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: controller.backendEnabled
-                                      ? '초대 링크 붙여넣기'
-                                      : '그룹코드 6자리',
-                                  counterText: '',
-                                  filled: false,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                  ),
-                                ),
-                                onSubmitted: controller.joinGroup,
-                              ),
-                            ),
-                            JakuButton(
-                              '참여하기',
-                              small: true,
-                              onPressed: () =>
-                                  controller.joinGroup(codeInput.text),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        controller.backendEnabled
-                            ? '친구에게 받은 만나자쿠 초대 링크를 붙여 넣어주세요.'
-                            : '프론트엔드 체험에서는 예시 그룹으로 참여해요.',
-                        style: TextStyle(fontSize: 12, color: c.body),
-                      ),
-                    ],
-                  ),
-                )
-              : const SizedBox(width: double.infinity),
         ),
         if (controller.error != null)
           Padding(

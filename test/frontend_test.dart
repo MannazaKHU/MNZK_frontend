@@ -68,7 +68,7 @@ void main() {
         '우리 스터디',
       );
       await tapButton(tester, '그룹 만들기');
-      expect(find.text('코드 복사'), findsOneWidget);
+      expect(find.textContaining('그룹코드'), findsNothing);
       await tapButton(tester, '내 일정 입력하기');
       await tester.enterText(find.byKey(const ValueKey('my-name')), '승주');
       await tapButton(tester, '다음');
@@ -163,16 +163,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('다크 테마와 코드 입력 오류를 표시한다', (tester) async {
+  testWidgets('다크 테마에서 그룹 코드 UI를 표시하지 않는다', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
     await tester.pumpWidget(const MannajakuApp());
     await tester.pumpAndSettle();
     await tapButton(tester, '직접 약속 잡기');
-    await tapButton(tester, '그룹코드 입력');
-    await tester.enterText(find.byType(TextField), '12');
-    await tapButton(tester, '참여하기');
-    expect(find.textContaining('그룹 코드는 영문과 숫자 6자리'), findsOneWidget);
+    expect(find.textContaining('그룹코드'), findsNothing);
+    expect(find.text('그룹 생성하기'), findsWidgets);
     expect(
       Theme.of(tester.element(find.byType(Scaffold))).brightness,
       Brightness.dark,
