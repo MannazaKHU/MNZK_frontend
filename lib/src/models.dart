@@ -121,6 +121,13 @@ class PlaceRecommendation {
         : const [];
     final travelText = strings(json['travel_text']);
     final travel = travelText.where((item) => item.trim().isNotEmpty).toList();
+    List<String> reasonItems(Object? value) => strings(
+      value,
+    ).expand(_splitReasonText).where((item) => item.isNotEmpty).toList();
+    final matched = reasonItems(json['matched']);
+    final reason = reasonItems([
+      if (json['reason'] != null) json['reason'].toString(),
+    ]);
     return PlaceRecommendation(
       id: place['id']?.toString() ?? json['place_id']?.toString() ?? '',
       name: place['name']?.toString() ?? '추천 장소',
@@ -130,15 +137,35 @@ class PlaceRecommendation {
           place['address']?.toString() ??
           '추천 장소',
       score: ((json['score'] as num?) ?? 0).round(),
-      reasons: strings(json['matched']).isNotEmpty
-          ? strings(json['matched'])
-          : [if (json['reason'] != null) json['reason'].toString()],
+      reasons: matched.isNotEmpty ? matched : reason,
       warnings: strings(json['warnings']),
       travel: travel,
       url: place['url']?.toString() ?? place['map_url']?.toString(),
       lat: (place['lat'] as num?)?.toDouble(),
       lng: (place['lng'] as num?)?.toDouble(),
     );
+  }
+
+  static List<String> _splitReasonText(String text) {
+    final normalized = text.replaceAll('\r', '\n').trim();
+    if (normalized.isEmpty) return const [];
+    final parts = <String>[];
+    var start = 0;
+    for (var i = 0; i < normalized.length; i++) {
+      final char = normalized[i];
+      final isLineBreak = char == '\n' || char == '•';
+      final isSentenceEnd =
+          (char == '.' || char == '!' || char == '?') &&
+          (i + 1 == normalized.length || normalized[i + 1].trim().isEmpty);
+      if (!isLineBreak && !isSentenceEnd) continue;
+      final end = isSentenceEnd ? i + 1 : i;
+      final part = normalized.substring(start, end).trim();
+      if (part.isNotEmpty) parts.add(part);
+      start = i + 1;
+    }
+    final tail = normalized.substring(start).trim();
+    if (tail.isNotEmpty) parts.add(tail);
+    return parts;
   }
 }
 

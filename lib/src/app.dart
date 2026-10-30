@@ -209,7 +209,7 @@ class _Header extends StatelessWidget {
         ? _GroupBadge(group: group, onCopy: () => _copy(context))
         : null;
     return Container(
-      height: mobileHome ? 118 : 76,
+      height: mobileHome ? 132 : 76,
       color: c.background,
       alignment: Alignment.center,
       child: ConstrainedBox(
@@ -252,6 +252,7 @@ class _AnimatedLogoState extends State<_AnimatedLogo> {
   Widget build(BuildContext context) {
     final c = JakuColors.of(context);
     final reduce = MediaQuery.disableAnimationsOf(context);
+    final compact = MediaQuery.sizeOf(context).width < 340;
     return MouseRegion(
       onEnter: (_) => setState(() => hovered = true),
       onExit: (_) => setState(() => hovered = false),
@@ -279,25 +280,25 @@ class _AnimatedLogoState extends State<_AnimatedLogo> {
                         : const Duration(milliseconds: 400),
                     curve: Curves.easeOutBack,
                     child: Container(
-                      width: 30,
-                      height: 30,
+                      width: compact ? 34 : 42,
+                      height: compact ? 34 : 42,
                       decoration: BoxDecoration(
                         color: JakuColors.green,
                         border: Border.all(
                           color: JakuColors.stickerInk,
-                          width: 2,
+                          width: 3,
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(compact ? 12 : 15),
                       ),
                       child: Center(
                         child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
+                          spacing: compact ? 4 : 5,
+                          runSpacing: compact ? 4 : 5,
                           children: List.generate(
                             4,
                             (i) => Container(
-                              width: 6,
-                              height: 6,
+                              width: compact ? 6 : 8,
+                              height: compact ? 6 : 8,
                               decoration: BoxDecoration(
                                 color: JakuColors.stickerInk.withValues(
                                   alpha: i == 3 ? .45 : 1,
@@ -311,11 +312,12 @@ class _AnimatedLogoState extends State<_AnimatedLogo> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: compact ? 9 : 14),
                 Text(
                   '만나자쿠',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: compact ? 22 : 28,
+                    letterSpacing: -1.1,
                     fontWeight: FontWeight.w800,
                     color: c.ink,
                   ),

@@ -1614,10 +1614,48 @@ class _PlaceCardState extends State<_PlaceCard> {
             ),
           ),
           const SizedBox(height: 7),
-          Wrap(
-            spacing: 7,
-            runSpacing: 7,
-            children: widget.data.reasons.map(JakuTag.new).toList(),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: c.soft,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final reason in widget.data.reasons)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(top: 7, right: 9),
+                            decoration: BoxDecoration(
+                              color: c.strong,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              reason,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.55,
+                                color: c.ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
           if (widget.data.travel.isNotEmpty) ...[
             const SizedBox(height: 14),

@@ -128,4 +128,20 @@ void main() {
     expect(recommendation.lat, 37.5665);
     expect(recommendation.lng, 126.978);
   });
+
+  test('줄글로 온 추천 이유를 문장별 항목으로 나눈다', () {
+    final recommendation = PlaceRecommendation.fromJson({
+      'place': {'name': '예제 카페'},
+      'reason':
+          '평균 이동시간은 10.4분이에요. 조용한 곳 조건을 충족해요. '
+          '가장 먼 참여자는 17.7분이에요.',
+      'score': 91,
+    });
+
+    expect(recommendation.reasons, [
+      '평균 이동시간은 10.4분이에요.',
+      '조용한 곳 조건을 충족해요.',
+      '가장 먼 참여자는 17.7분이에요.',
+    ]);
+  });
 }

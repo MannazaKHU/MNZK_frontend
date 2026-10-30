@@ -55,21 +55,9 @@ CORS_ORIGINS=https://ggj.com,http://localhost:8080,http://127.0.0.1:8080
 
 연동되는 API는 그룹 생성, 초대 링크 참여, Bearer 토큰 기반 응답 제출, 모임 상태 조회와 장소 추천 결과입니다. 대기 화면은 3초마다 상태를 조회하며 `recommended` 또는 `finalized`가 되면 결과 화면으로 전환합니다.
 
-### 네이버 지도 연결
+### 지도 연결
 
-백엔드 추천 결과의 `place.lat`, `place.lng`, `place.url`을 사용합니다. 지도 JavaScript API 키가 있으면 결과 카드 안에 실제 네이버 지도와 마커를 표시하고, 키가 없어도 `지도에서 보기`는 네이버 지도 검색 링크를 새 탭으로 엽니다.
-
-Railway 프론트 서비스의 Variables에 네이버 Cloud Platform Maps의 API Key ID를 넣고 새로 빌드합니다. Value에는 키 값만 넣습니다.
-
-```dotenv
-NAVER_MAP_CLIENT_ID=<NCP Maps API Key ID>
-```
-
-네이버 Cloud Platform의 Web service URL에는 실제 프론트 origin을 등록해야 합니다.
-
-```text
-https://mannajaku-flutter-production-75f1.up.railway.app
-```
+백엔드 추천 결과의 `place.lat`, `place.lng`, `place.url`을 사용합니다. 결과 카드의 지도 미리보기는 별도의 프론트 키 없이 OpenStreetMap 좌표 지도를 표시하고, `지도에서 보기`는 백엔드가 준 네이버 지도 URL을 새 탭으로 엽니다.
 
 ## 구현된 화면과 동작
 
