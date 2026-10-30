@@ -133,6 +133,19 @@ class FlowPage extends StatelessWidget {
             onChanged: (value) => model.groupName = value,
             onFieldSubmitted: (_) => model.createGroup(),
           ),
+          if (model.backendEnabled) ...[
+            const SizedBox(height: 20),
+            _FieldLabel('방장 이름'),
+            const SizedBox(height: 9),
+            TextFormField(
+              key: const ValueKey('host-name'),
+              initialValue: model.hostName,
+              maxLength: 20,
+              decoration: const InputDecoration(hintText: 'ex) 승주'),
+              onChanged: (value) => model.hostName = value,
+              onFieldSubmitted: (_) => model.createGroup(),
+            ),
+          ],
           const SizedBox(height: 28),
           _FieldLabel('인원 수'),
           const SizedBox(height: 10),
@@ -175,7 +188,7 @@ class FlowPage extends StatelessWidget {
                     RoundButton(
                       icon: Icons.add_rounded,
                       tooltip: '한 명 늘리기',
-                      onPressed: model.groupSize < 12
+                      onPressed: model.groupSize < model.maxGroupSize
                           ? () => model.changeSize(1)
                           : null,
                     ),
@@ -205,7 +218,7 @@ class FlowPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '나를 포함한 인원이에요. 2명부터 12명까지 정할 수 있어요.',
+            '나를 포함한 인원이에요. 2명부터 ${model.maxGroupSize}명까지 정할 수 있어요.',
             style: TextStyle(fontSize: 12, color: c.body),
           ),
           const SizedBox(height: 28),
@@ -214,7 +227,7 @@ class FlowPage extends StatelessWidget {
             button: JakuButton(
               '그룹 만들기',
               arrow: true,
-              onPressed: model.createGroup,
+              onPressed: model.isBusy ? null : model.createGroup,
             ),
           ),
         ];
@@ -223,7 +236,7 @@ class FlowPage extends StatelessWidget {
           const PanelHeading(
             eyebrow: '그룹이 만들어졌어요',
             title: '',
-            highlight: '그룹 코드',
+            highlight: '초대 링크',
             after: '를 친구들에게 보내주세요',
           ),
           const SizedBox(height: 20),
@@ -295,7 +308,7 @@ class FlowPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 22),
                 JakuButton(
-                  '코드 복사',
+                  model.backendEnabled ? '초대 링크 복사' : '코드 복사',
                   secondary: true,
                   small: true,
                   icon: Icons.copy_rounded,
@@ -305,13 +318,19 @@ class FlowPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const InfoBox(
-            '친구들이 첫 화면의 ‘그룹코드 입력’에 이 코드를 넣으면 같은 그룹에 참여해요. 현재 프론트엔드에서는 예시 그룹으로 동작해요.',
+          InfoBox(
+            model.backendEnabled
+                ? '친구가 초대 링크를 열면 같은 그룹에 참여해요. 링크에는 모임 ID와 일회성 초대 정보가 포함돼요.'
+                : '친구들이 첫 화면의 ‘그룹코드 입력’에 이 코드를 넣으면 같은 그룹에 참여해요.',
           ),
           const SizedBox(height: 28),
           PanelFooter(
             hint: '오른쪽 위에서도 코드를 복사할 수 있어요',
-            button: JakuButton('내 일정 입력하기', arrow: true, onPressed: model.next),
+            button: JakuButton(
+              '내 일정 입력하기',
+              arrow: true,
+              onPressed: model.isBusy ? null : model.next,
+            ),
           ),
         ];
       case MeetingStep.name:
@@ -338,7 +357,11 @@ class FlowPage extends StatelessWidget {
           const SizedBox(height: 28),
           PanelFooter(
             hint: 'Enter를 눌러도 다음으로 넘어가요',
-            button: JakuButton('다음', arrow: true, onPressed: model.next),
+            button: JakuButton(
+              '다음',
+              arrow: true,
+              onPressed: model.isBusy ? null : model.next,
+            ),
           ),
         ];
       case MeetingStep.date:
@@ -569,7 +592,11 @@ class FlowPage extends StatelessWidget {
           _Summary(draft: model.draft),
           const SizedBox(height: 28),
           PanelFooter(
-            button: JakuButton('제출하기', arrow: true, onPressed: model.submit),
+            button: JakuButton(
+              '제출하기',
+              arrow: true,
+              onPressed: model.isBusy ? null : model.submit,
+            ),
           ),
         ];
       case MeetingStep.wait:
@@ -583,8 +610,13 @@ class FlowPage extends StatelessWidget {
 
   Future<void> _copyCode(BuildContext context) async {
     try {
-      await Clipboard.setData(ClipboardData(text: controller.group!.code));
-      if (context.mounted) showToast(context, '그룹 코드를 복사했어요.');
+      await Clipboard.setData(ClipboardData(text: controller.invitationLink));
+      if (context.mounted) {
+        showToast(
+          context,
+          controller.backendEnabled ? '초대 링크를 복사했어요.' : '그룹 코드를 복사했어요.',
+        );
+      }
     } catch (_) {
       if (context.mounted) showToast(context, '코드를 길게 눌러 직접 복사해주세요.');
     }
@@ -896,6 +928,8 @@ class _WaitPanel extends StatelessWidget {
         Text(
           gathering
               ? '모든 입력이 모였어요. 잠시 후 결과를 보여드릴게요.'
+              : controller.backendEnabled
+              ? '다른 그룹원이 초대 링크로 참여해 입력을 마칠 때까지 기다려주세요.'
               : '체험을 위해 예시 그룹원의 일정을 채우고 있어요.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: c.body),
@@ -972,7 +1006,11 @@ class _WaitPanel extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${member.name}${member.isMe ? ' (나)' : ' · 예시'}',
+                              '${member.name}${member.isMe
+                                  ? ' (나)'
+                                  : member.isExample
+                                  ? ' · 예시'
+                                  : ''}',
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12,
@@ -1009,7 +1047,11 @@ class _WaitPanel extends StatelessWidget {
                 secondary: true,
                 onPressed: controller.editMine,
               ),
-            JakuButton('그룹 코드 복사', secondary: true, onPressed: onCopy),
+            JakuButton(
+              controller.backendEnabled ? '초대 링크 복사' : '그룹 코드 복사',
+              secondary: true,
+              onPressed: onCopy,
+            ),
           ],
         ),
       ],
@@ -1059,7 +1101,8 @@ class _ResultPanelState extends State<_ResultPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         PanelHeading(
-          eyebrow: '${model.group!.name} · $size명 · 체험 결과',
+          eyebrow:
+              '${model.group!.name} · $size명 · ${model.backendEnabled ? '추천 결과' : '체험 결과'}',
           title: '우리의 ',
           highlight: '약속',
           after: '을 찾았어요',
@@ -1122,8 +1165,8 @@ class _ResultPanelState extends State<_ResultPanel> {
                 borderRadius: BorderRadius.circular(99),
                 border: Border.all(color: JakuColors.stickerInk, width: 1.5),
               ),
-              child: const Text(
-                '예시 추천',
+              child: Text(
+                model.recommendations.isEmpty ? '예시 추천' : '서버 추천',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -1135,11 +1178,16 @@ class _ResultPanelState extends State<_ResultPanel> {
         ),
         const SizedBox(height: 6),
         Text(
-          '실제 장소 API 연결 전이라 입력한 출발지와 취향을 바탕으로 구성한 프론트엔드 예시예요.',
+          model.recommendations.isEmpty
+              ? '장소 추천 결과가 없어 입력값을 바탕으로 구성한 프론트엔드 예시예요.'
+              : '백엔드가 공통 일정, 출발지와 취향을 계산해 반환한 추천 결과예요.',
           style: TextStyle(fontSize: 12, height: 1.6, color: c.body),
         ),
         const SizedBox(height: 14),
-        _PlaceRecommendations(members: model.members),
+        _PlaceRecommendations(
+          members: model.members,
+          recommendations: model.recommendations,
+        ),
         const SizedBox(height: 30),
         _subheading('그룹 전체 시간표', c),
         const SizedBox(height: 14),
@@ -1273,8 +1321,12 @@ class _ResultPanelState extends State<_ResultPanel> {
 }
 
 class _PlaceRecommendations extends StatelessWidget {
-  const _PlaceRecommendations({required this.members});
+  const _PlaceRecommendations({
+    required this.members,
+    this.recommendations = const [],
+  });
   final List<Member> members;
+  final List<PlaceRecommendation> recommendations;
 
   @override
   Widget build(BuildContext context) {
@@ -1296,7 +1348,7 @@ class _PlaceRecommendations extends StatelessWidget {
         .toSet()
         .take(4)
         .toList();
-    final data = [
+    final fallback = [
       _PlaceData(
         name: '초록 테이블 파스타',
         category: '이탈리안 · 중간 지점',
@@ -1328,6 +1380,20 @@ class _PlaceRecommendations extends StatelessWidget {
         ],
       ),
     ];
+    final data = recommendations.isEmpty
+        ? fallback
+        : recommendations
+              .map(
+                (item) => _PlaceData(
+                  name: item.name,
+                  category: item.category,
+                  score: item.score,
+                  reasons: item.reasons,
+                  warnings: item.warnings,
+                  travel: item.travel,
+                ),
+              )
+              .toList();
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 640) {
@@ -1345,14 +1411,17 @@ class _PlaceRecommendations extends StatelessWidget {
           children: [
             _PlaceCard(data: data.first, rank: 1, featured: true),
             const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _PlaceCard(data: data[1], rank: 2)),
-                const SizedBox(width: 14),
-                Expanded(child: _PlaceCard(data: data[2], rank: 3)),
-              ],
-            ),
+            if (data.length > 1)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _PlaceCard(data: data[1], rank: 2)),
+                  if (data.length > 2) ...[
+                    const SizedBox(width: 14),
+                    Expanded(child: _PlaceCard(data: data[2], rank: 3)),
+                  ],
+                ],
+              ),
           ],
         );
       },

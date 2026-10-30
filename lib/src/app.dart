@@ -110,7 +110,8 @@ class _MeetingPageState extends State<MeetingPage> {
                       controller: scroll,
                       child: Column(
                         children: [
-                          if (controller.step != null)
+                          if (controller.step != null &&
+                              !controller.backendEnabled)
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
@@ -183,8 +184,13 @@ class _Header extends StatelessWidget {
 
   Future<void> _copy(BuildContext context) async {
     try {
-      await Clipboard.setData(ClipboardData(text: controller.group!.code));
-      if (context.mounted) showToast(context, '그룹 코드를 복사했어요.');
+      await Clipboard.setData(ClipboardData(text: controller.invitationLink));
+      if (context.mounted) {
+        showToast(
+          context,
+          controller.backendEnabled ? '초대 링크를 복사했어요.' : '그룹 코드를 복사했어요.',
+        );
+      }
     } catch (_) {
       if (context.mounted) showToast(context, '코드를 길게 눌러 직접 복사해주세요.');
     }
@@ -409,7 +415,7 @@ class _GroupBadge extends StatelessWidget {
               const SizedBox(width: 9),
             ],
             Tooltip(
-              message: '그룹 코드 복사',
+              message: '초대 정보 복사',
               child: InkWell(
                 onTap: onCopy,
                 borderRadius: BorderRadius.circular(99),

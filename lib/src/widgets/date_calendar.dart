@@ -92,6 +92,7 @@ class DateCalendar extends StatelessWidget {
                       );
                       final selected = controller.draft.dates.contains(date);
                       final outside = date.month != month.month;
+                      final enabled = controller.canSelectDate(date);
                       return Expanded(
                         child: SizedBox(
                           height: extent,
@@ -104,7 +105,9 @@ class DateCalendar extends StatelessWidget {
                                 message: '${date.year}년 ${dateLabel(date)}',
                                 child: TextButton(
                                   key: ValueKey('date-${dateKey(date)}'),
-                                  onPressed: () => controller.toggleDate(date),
+                                  onPressed: enabled
+                                      ? () => controller.toggleDate(date)
+                                      : null,
                                   style: TextButton.styleFrom(
                                     minimumSize: Size(extent - 5, extent - 5),
                                     padding: EdgeInsets.zero,
@@ -132,7 +135,11 @@ class DateCalendar extends StatelessWidget {
                                     ),
                                   ),
                                   child: Opacity(
-                                    opacity: outside && !selected ? .35 : 1,
+                                    opacity: !enabled
+                                        ? .18
+                                        : outside && !selected
+                                        ? .35
+                                        : 1,
                                     child: Text('${date.day}'),
                                   ),
                                 ),

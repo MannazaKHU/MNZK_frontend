@@ -76,10 +76,61 @@ class MeetingGroup {
     required this.name,
     required this.size,
     required this.code,
+    this.id,
   });
   final String name;
   final int size;
   final String code;
+  final String? id;
+}
+
+class PlaceRecommendation {
+  const PlaceRecommendation({
+    required this.name,
+    required this.score,
+    required this.reasons,
+    required this.warnings,
+    required this.travel,
+    this.category = '추천 장소',
+    this.url,
+  });
+
+  final String name;
+  final int score;
+  final List<String> reasons;
+  final List<String> warnings;
+  final List<String> travel;
+  final String category;
+  final String? url;
+
+  factory PlaceRecommendation.fromJson(Map<String, dynamic> json) {
+    final place = json['place'] is Map
+        ? Map<String, dynamic>.from(json['place'] as Map)
+        : <String, dynamic>{};
+    List<String> strings(Object? value) => value is List
+        ? value
+              .map((item) => item.toString())
+              .where((item) => item.isNotEmpty)
+              .toList()
+        : const [];
+    final travelText = strings(json['travel_text']);
+    final travel = travelText.where((item) => item.trim().isNotEmpty).toList();
+    return PlaceRecommendation(
+      name: place['name']?.toString() ?? '추천 장소',
+      category:
+          place['category']?.toString() ??
+          place['road_address']?.toString() ??
+          place['address']?.toString() ??
+          '추천 장소',
+      score: ((json['score'] as num?) ?? 0).round(),
+      reasons: strings(json['matched']).isNotEmpty
+          ? strings(json['matched'])
+          : [if (json['reason'] != null) json['reason'].toString()],
+      warnings: strings(json['warnings']),
+      travel: travel,
+      url: place['url']?.toString() ?? place['map_url']?.toString(),
+    );
+  }
 }
 
 class Member {

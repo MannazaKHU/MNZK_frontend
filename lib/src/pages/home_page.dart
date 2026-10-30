@@ -200,21 +200,25 @@ class _HeroCopy extends StatelessWidget {
                               child: TextField(
                                 controller: codeInput,
                                 autofocus: true,
-                                maxLength: 6,
+                                maxLength: controller.backendEnabled ? null : 6,
                                 textCapitalization:
                                     TextCapitalization.characters,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp('[a-zA-Z0-9]'),
-                                  ),
-                                ],
+                                inputFormatters: controller.backendEnabled
+                                    ? const []
+                                    : [
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp('[a-zA-Z0-9]'),
+                                        ),
+                                      ],
                                 style: TextStyle(
                                   color: c.ink,
                                   letterSpacing: 2,
                                   fontSize: 15,
                                 ),
-                                decoration: const InputDecoration(
-                                  hintText: '그룹코드 6자리',
+                                decoration: InputDecoration(
+                                  hintText: controller.backendEnabled
+                                      ? '초대 링크 붙여넣기'
+                                      : '그룹코드 6자리',
                                   counterText: '',
                                   filled: false,
                                   border: InputBorder.none,
@@ -238,7 +242,9 @@ class _HeroCopy extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '프론트엔드 체험에서는 예시 그룹으로 참여해요.',
+                        controller.backendEnabled
+                            ? '친구에게 받은 만나자쿠 초대 링크를 붙여 넣어주세요.'
+                            : '프론트엔드 체험에서는 예시 그룹으로 참여해요.',
                         style: TextStyle(fontSize: 12, color: c.body),
                       ),
                     ],
