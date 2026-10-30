@@ -110,6 +110,8 @@ void main() {
       expect(find.text('날짜 · 시간 순위'), findsOneWidget);
       expect(find.text('모은 의견'), findsNothing);
       expect(find.text('장소 추천'), findsWidgets);
+      expect(find.text('서버 추천'), findsNothing);
+      expect(find.textContaining('백엔드가 공통 일정'), findsNothing);
       expect(find.text('결과 링크 복사'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tapButton(tester, '처음으로');

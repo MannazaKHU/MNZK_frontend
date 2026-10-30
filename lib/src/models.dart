@@ -186,6 +186,82 @@ class PlaceRecommendation {
   }
 }
 
+List<String> displayRecommendationReasons(
+  PlaceRecommendation recommendation,
+  Iterable<String> preferences,
+) {
+  bool isTravel(String value) {
+    final text = value.replaceAll(' ', '');
+    return [
+      '이동시간',
+      '이동거리',
+      '도착',
+      '참여자',
+      '가까운',
+      '가까워',
+      '직선거리',
+    ].any(text.contains);
+  }
+
+  bool isTechnical(String value) {
+    final text = value.replaceAll(' ', '');
+    return [
+      '2순위대비',
+      '기여분',
+      '총점차이',
+      '반올림전',
+      '추천정책으로계산',
+      '그룹의이동편의와선호조건을종합',
+    ].any(text.contains);
+  }
+
+  String? firstValue(Iterable<String> values) {
+    for (final value in values) {
+      return value;
+    }
+    return null;
+  }
+
+  final supplied = recommendation.reasons
+      .map((reason) => reason.trim())
+      .where((reason) => reason.isNotEmpty)
+      .toList();
+  final nonTravel = supplied
+      .where((reason) => !isTravel(reason) && !isTechnical(reason))
+      .toList();
+  final travel = supplied.where(isTravel).toList();
+  final preference = firstValue(
+    preferences
+        .map((value) => value.trim())
+        .where(
+          (value) =>
+              value.isNotEmpty && !isTravel(value) && !isTechnical(value),
+        ),
+  );
+  final categories = recommendation.category
+      .split('>')
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList();
+  final category = categories.isEmpty ? null : categories.last;
+
+  final result = <String>[
+    if (nonTravel.isNotEmpty)
+      nonTravel.first
+    else if (preference != null)
+      '$preference 조건을 고려한 장소예요.'
+    else
+      '${category ?? '모임'} 유형으로 모임 목적에 잘 맞는 장소예요.',
+    if (travel.isNotEmpty)
+      travel.first
+    else if (nonTravel.length > 1)
+      nonTravel[1]
+    else
+      '그룹의 전체 조건을 종합해 선정했어요.',
+  ];
+  return result.toSet().take(2).toList();
+}
+
 class Member {
   Member({required this.name, this.isMe = false, this.isExample = false});
   final String name;

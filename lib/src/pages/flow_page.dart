@@ -1139,35 +1139,7 @@ class _ResultPanelState extends State<_ResultPanel> {
             },
           ),
         const SizedBox(height: 30),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _subheading('장소 추천', c),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: JakuColors.butter,
-                borderRadius: BorderRadius.circular(99),
-                border: Border.all(color: JakuColors.stickerInk, width: 1.5),
-              ),
-              child: Text(
-                model.recommendations.isEmpty ? '예시 추천' : '서버 추천',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xff3d3410),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          model.recommendations.isEmpty
-              ? '장소 추천 결과가 없어 입력값을 바탕으로 구성한 프론트엔드 예시예요.'
-              : '백엔드가 공통 일정, 출발지와 취향을 계산해 반환한 추천 결과예요.',
-          style: TextStyle(fontSize: 12, height: 1.6, color: c.body),
-        ),
+        _subheading('장소 추천', c),
         const SizedBox(height: 14),
         _PlaceRecommendations(
           members: model.members,
@@ -1310,7 +1282,7 @@ class _PlaceRecommendations extends StatelessWidget {
                   name: item.name,
                   category: item.category,
                   score: item.score,
-                  reasons: item.reasons,
+                  reasons: displayRecommendationReasons(item, preferred),
                   warnings: item.warnings,
                   travel: item.travel,
                   url: item.url,

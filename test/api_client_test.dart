@@ -162,4 +162,17 @@ void main() {
     ]);
     expect(empty.reasons, isNotEmpty);
   });
+
+  test('화면용 추천 이유은 비거리 조건과 이동 조건을 하나씩 표시한다', () {
+    final recommendation = PlaceRecommendation.fromJson({
+      'place': {'name': '예제 카페', 'category': '음식점>카페'},
+      'travel_summary': {'average_minutes': 18.5, 'maximum_minutes': 31},
+      'score': 70,
+    });
+
+    expect(displayRecommendationReasons(recommendation, ['가까운 곳', '조용한 곳']), [
+      '조용한 곳 조건을 고려한 장소예요.',
+      '평균 이동시간은 18.5분이에요.',
+    ]);
+  });
 }
