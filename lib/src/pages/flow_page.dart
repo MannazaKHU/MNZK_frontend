@@ -1661,26 +1661,6 @@ class _PlaceCardState extends State<_PlaceCard> {
               ],
             ),
           ],
-          if (widget.data.warnings.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: c.sun.withValues(alpha: .09),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Text(
-                '피하고 싶은 조건 확인: ${widget.data.warnings.join(', ')}',
-                style: TextStyle(
-                  fontSize: 11,
-                  height: 1.6,
-                  color: c.sun,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
