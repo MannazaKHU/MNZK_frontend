@@ -108,7 +108,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.step, MeetingStep.result);
       expect(find.text('날짜 · 시간 순위'), findsOneWidget);
-      expect(find.text('모은 의견'), findsOneWidget);
+      expect(find.text('모은 의견'), findsNothing);
       expect(find.text('장소 추천'), findsWidgets);
       expect(find.text('결과 링크 복사'), findsOneWidget);
       expect(tester.takeException(), isNull);

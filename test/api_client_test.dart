@@ -144,4 +144,22 @@ void main() {
       '가장 먼 참여자는 17.7분이에요.',
     ]);
   });
+
+  test('백엔드 추천 이유가 비어도 프론트에서 표시할 이유를 만든다', () {
+    final withTravel = PlaceRecommendation.fromJson({
+      'place': {'name': '예제 카페'},
+      'travel_summary': {'average_minutes': 10.4, 'maximum_minutes': 17.7},
+      'score': 61,
+    });
+    final empty = PlaceRecommendation.fromJson({
+      'place': {'name': '예제 서점'},
+      'score': 33,
+    });
+
+    expect(withTravel.reasons, [
+      '평균 이동시간은 10.4분이에요.',
+      '가장 먼 참여자도 17.7분 안에 도착해요.',
+    ]);
+    expect(empty.reasons, isNotEmpty);
+  });
 }

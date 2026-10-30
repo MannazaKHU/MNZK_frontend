@@ -128,6 +128,19 @@ class PlaceRecommendation {
     final reason = reasonItems([
       if (json['reason'] != null) json['reason'].toString(),
     ]);
+    final travelSummary = json['travel_summary'];
+    final travelReasons = <String>[];
+    if (travelSummary is Map) {
+      final average = travelSummary['average_minutes'];
+      final maximum = travelSummary['maximum_minutes'];
+      if (average is num) {
+        travelReasons.add('평균 이동시간은 ${_minutes(average)}이에요.');
+      }
+      if (maximum is num) {
+        travelReasons.add('가장 먼 참여자도 ${_minutes(maximum)} 안에 도착해요.');
+      }
+    }
+    final reasons = <String>{...matched, ...reason, ...travelReasons}.toList();
     return PlaceRecommendation(
       id: place['id']?.toString() ?? json['place_id']?.toString() ?? '',
       name: place['name']?.toString() ?? '추천 장소',
@@ -137,7 +150,9 @@ class PlaceRecommendation {
           place['address']?.toString() ??
           '추천 장소',
       score: ((json['score'] as num?) ?? 0).round(),
-      reasons: matched.isNotEmpty ? matched : reason,
+      reasons: reasons.isEmpty
+          ? const ['그룹의 이동 편의와 선호 조건을 종합해 추천했어요.']
+          : reasons.take(4).toList(),
       warnings: strings(json['warnings']),
       travel: travel,
       url: place['url']?.toString() ?? place['map_url']?.toString(),
@@ -166,6 +181,14 @@ class PlaceRecommendation {
     final tail = normalized.substring(start).trim();
     if (tail.isNotEmpty) parts.add(tail);
     return parts;
+  }
+
+  static String _minutes(num value) {
+    final number = value.toDouble();
+    final text = number == number.roundToDouble()
+        ? number.toInt().toString()
+        : number.toStringAsFixed(1);
+    return '$text분';
   }
 }
 

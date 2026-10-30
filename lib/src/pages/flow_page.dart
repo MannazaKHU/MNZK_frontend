@@ -1244,44 +1244,6 @@ class _ResultPanelState extends State<_ResultPanel> {
           child: Text(inspection, style: TextStyle(fontSize: 13, color: c.ink)),
         ),
         const SizedBox(height: 28),
-        _subheading('모은 의견', c),
-        const SizedBox(height: 14),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final blocks = [
-              _opinion('출발지', model.members.map((m) => m.place), c),
-              _opinion('이런 약속 원해요', model.members.map((m) => m.good), c),
-              _opinion(
-                '이런 약속 싫어요',
-                model.members.map((m) => m.bad),
-                c,
-                negative: true,
-              ),
-            ];
-            if (constraints.maxWidth < 580) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final block in blocks)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: block,
-                    ),
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < blocks.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 12),
-                  Expanded(child: blocks[i]),
-                ],
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 28),
         Align(
           alignment: Alignment.centerLeft,
           child: JakuButton('처음으로', secondary: true, onPressed: model.home),
@@ -1294,44 +1256,6 @@ class _ResultPanelState extends State<_ResultPanel> {
     text,
     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.ink),
   );
-  Widget _opinion(
-    String heading,
-    Iterable<String> values,
-    JakuColors c, {
-    bool negative = false,
-  }) {
-    final items =
-        values.map((s) => s.trim()).where((s) => s.isNotEmpty).toList()..sort();
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: negative ? c.sun.withValues(alpha: .08) : c.panel,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            heading,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: negative ? c.sun : c.strong,
-            ),
-          ),
-          const SizedBox(height: 10),
-          for (final item in items.isEmpty ? ['—'] : items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '· $item',
-                style: TextStyle(fontSize: 12, height: 1.7, color: c.ink),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _PlaceRecommendations extends StatelessWidget {
